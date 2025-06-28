@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-PB_VERSION="0.28.3"
+PB_VERSION=""
 ROOT_DIR="/home/projects/pocketbase"
 PROJECT_NAME=""
 PORT=""
@@ -87,16 +87,24 @@ find_available_port() {
 # Function to get user input
 get_user_input() {
     echo ""
-    print_info "Setting up PocketBase v${PB_VERSION}"
+    print_info "Setting up PocketBase Docker container"
     echo ""
     
-    read -p "Enter project name (e.g., contentjet-pb, sync-app): " PROJECT_NAME
+    # Get PocketBase version
+    read -p "Enter PocketBase version (default: 0.28.3): " PB_VERSION
+    if [[ -z "$PB_VERSION" ]]; then
+        PB_VERSION="0.28.3"
+    fi
+    print_success "Using PocketBase v${PB_VERSION}"
     
+    # Get project name
+    read -p "Enter project name (e.g., contentjet-pb, sync-app): " PROJECT_NAME
     if [[ -z "$PROJECT_NAME" ]]; then
         print_error "Project name cannot be empty"
         exit 1
     fi
     
+    # Get port configuration
     echo ""
     echo "Port options:"
     echo "1) Auto-detect available port (recommended)"
@@ -151,17 +159,17 @@ create_directories() {
 
 # Function to create Dockerfile
 create_dockerfile() {
-    local dockerfile_content='FROM alpine:latest
+    local dockerfile_content="FROM alpine:latest
 
 # Set the PocketBase version as an environment variable
-ENV PB_VERSION=0.28.3
+ENV PB_VERSION=${PB_VERSION}
 
-RUN apk add --no-cache \
-    unzip \
+RUN apk add --no-cache \\
+    unzip \\
     ca-certificates
 
 # Download and unzip PocketBase
-ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
+ADD https://github.com/pocketbase/pocketbase/releases/download/v\${PB_VERSION}/pocketbase_\${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
 RUN unzip /tmp/pb.zip -d /pb/
 
 # Uncomment to copy the local pb_migrations dir into the image
@@ -173,10 +181,10 @@ RUN unzip /tmp/pb.zip -d /pb/
 EXPOSE 8080
 
 # Start PocketBase
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8080"]'
+CMD [\"/pb/pocketbase\", \"serve\", \"--http=0.0.0.0:8080\"]"
     
     echo "$dockerfile_content" > /tmp/pocketbase.dockerfile
-    print_success "Created Dockerfile"
+    print_success "Created Dockerfile for PocketBase v${PB_VERSION}"
 }
 
 # Function to build Docker image
