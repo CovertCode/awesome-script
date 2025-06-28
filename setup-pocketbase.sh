@@ -90,15 +90,45 @@ get_user_input() {
     print_info "Setting up PocketBase Docker container"
     echo ""
     
+    # Check if we're running in a pipe (non-interactive)
+    if [ ! -t 0 ]; then
+        print_warning "Running in non-interactive mode. Using default values."
+        print_info "For interactive setup, download and run the script directly:"
+        print_info "curl -fsSL https://raw.githubusercontent.com/CovertCode/awesome-script/refs/heads/main/setup-pocketbase.sh -o setup.sh && chmod +x setup.sh && ./setup.sh"
+        echo ""
+        
+        # Use defaults
+        PB_VERSION="0.28.3"
+        PROJECT_NAME="pocketbase-$(date +%s)"
+        
+        print_info "Using defaults:"
+        print_info "  PocketBase version: ${PB_VERSION}"
+        print_info "  Project name: ${PROJECT_NAME}"
+        
+        # Find available port
+        PORT=$(find_available_port 9090)
+        if [[ -z "$PORT" ]]; then
+            print_error "Could not find available port"
+            exit 1
+        fi
+        print_info "  Port: ${PORT}"
+        
+        echo ""
+        read -p "Press Enter to continue or Ctrl+C to cancel..." -t 10 || true
+        echo ""
+        return
+    fi
+    
+    # Interactive mode
     # Get PocketBase version
-    read -p "Enter PocketBase version (default: 0.28.3): " PB_VERSION
+    read -p "Enter PocketBase version (default: 0.28.3): " PB_VERSION < /dev/tty
     if [[ -z "$PB_VERSION" ]]; then
         PB_VERSION="0.28.3"
     fi
     print_success "Using PocketBase v${PB_VERSION}"
     
     # Get project name
-    read -p "Enter project name (e.g., contentjet-pb, sync-app): " PROJECT_NAME
+    read -p "Enter project name (e.g., contentjet-pb, sync-app): " PROJECT_NAME < /dev/tty
     if [[ -z "$PROJECT_NAME" ]]; then
         print_error "Project name cannot be empty"
         exit 1
@@ -110,7 +140,7 @@ get_user_input() {
     echo "1) Auto-detect available port (recommended)"
     echo "2) Enter custom port number"
     echo ""
-    read -p "Choose option (1 or 2): " port_option
+    read -p "Choose option (1 or 2): " port_option < /dev/tty
     
     case $port_option in
         1)
@@ -123,7 +153,7 @@ get_user_input() {
             print_success "Found available port: ${PORT}"
             ;;
         2)
-            read -p "Enter port number: " PORT
+            read -p "Enter port number: " PORT < /dev/tty
             if [[ -z "$PORT" ]] || ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
                 print_error "Please enter a valid port number"
                 exit 1
@@ -131,7 +161,7 @@ get_user_input() {
             
             if ! is_port_available $PORT; then
                 print_warning "Port ${PORT} appears to be in use. Continue anyway? (y/N)"
-                read -r continue_anyway
+                read -r continue_anyway < /dev/tty
                 if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
                     print_info "Please choose a different port or use auto-detect option"
                     exit 1
